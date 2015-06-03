@@ -1,0 +1,93 @@
+/**
+ *  Front Door Bell Advanced
+ *
+ *  Copyright 2015 Ashutosh Jaiswal
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ */
+definition(
+    name: "Front Door Bell Advanced",
+    namespace: "",
+    author: "Ashutosh Jaiswal",
+    description: "When door bell is rung in a certain mode, this app turns lights on/off and send push notification. ",
+    category: "Safety & Security",
+    iconUrl: "https://cdn4.iconfinder.com/data/icons/line-system/512/tap-512.png",
+    iconX2Url: "https://cdn4.iconfinder.com/data/icons/line-system/512/tap-512.png",
+    iconX3Url: "https://cdn4.iconfinder.com/data/icons/line-system/512/tap-512.png")
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+preferences {
+	section("When door bell is rung...") {
+		input "contact1", "capability.contactSensor", title: "Where?"
+    }
+    section("Send this push notification (when at home)"){
+	input "message2", "text", title: "Message Text", required: true, description:"Tap Here to Enter"
+    }
+    section("And if everyone is away - Choose Mode for Away...") {
+    input "AwayMode","mode", title: "Away Mode", multiple: true
+	}
+    section("Then turn these lights ON...") {
+    input "switches", "capability.switch",title: "Choose Lights...", multiple: true
+	}
+    section("Keep Lights on for these many minutes"){
+    input "onTime", "number", title: "Minutes?",description:"Tap Here to Enter"
+    }
+    section("When no one at home, send this push notification"){
+	input "message1", "text", title: "Message Text", required: true,multiple: true, description:"Tap Here to Enter"
+    }
+}
+
+
+def installed()
+{
+	subscribe(contact1, "contact.open", contactOpenHandler)
+ 
+}
+
+def updated()
+{
+	unsubscribe()
+	subscribe(contact1, "contact.open", contactOpenHandler)
+
+}
+
+
+
+
+def contactOpenHandler(evt) {
+	log.trace "$evt.value: $evt, $settings"
+	log.debug "$contact1 was opened, texting $phone1"
+	
+    if(location.mode in AwayMode) {
+    log.debug "Mode is Away"
+    def msg1 = message1
+    sendPush msg1
+    log.debug "Away mode Push Sent.."
+    turnon()
+    }
+    else {
+    def msg2 = message2
+    sendPush msg2
+    log.debug "In Home Push sent.."
+    }
+ }
+
+def turnon() {
+      log.debug "Lights have been turned ON"
+      switches?.on()
+      runIn(onTime*60, "turnoff")
+      }
+
+def turnoff() {
+      log.debug "Lights turned off"
+      switches?.off()
+      }
